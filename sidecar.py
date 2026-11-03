@@ -1,4 +1,4 @@
-"""Always-on lore sidecar: propose → grade → auto-commit P0/P1; buffer the rest."""
+"""Always-on lore sidecar: propose → grade → auto-commit P0; buffer P1/P2 by default."""
 
 from __future__ import annotations
 
@@ -33,8 +33,9 @@ class SidecarResult:
 
 class LoreSidecar:
     """
-    Host feeds conversation/task events; P0 KV (+ optional P1) commits automatically.
-    Non-auto candidates go to ``{root}/buffer/provisional.jsonl``.
+    Host feeds conversation/task events; P0 KV commits automatically.
+    Default: P1/P2 go to ``{root}/buffer/provisional.jsonl`` for confirmation.
+    Set ``auto_p1_kv=True`` to auto-commit preference KV (legacy).
     """
 
     def __init__(self, store: LoreStore) -> None:
@@ -62,7 +63,7 @@ class LoreSidecar:
         event_kind: str = "text",
         task_id: str = "",
         auto_p0: bool = True,
-        auto_p1_kv: bool = True,
+        auto_p1_kv: bool = False,
         auto_p1_notes: bool = False,
         llm_propose: LlmProposeFn | None = None,
     ) -> SidecarResult:

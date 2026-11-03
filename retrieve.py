@@ -46,6 +46,8 @@ def retrieve(
     hits: list[RetrieveHit] = []
 
     for entry in lore.kv.search(q, limit=limit):
+        if not entry.enabled:
+            continue
         summary = f"{entry.key} = {entry.value}"
         if entry.aliases:
             summary += f" (aliases: {', '.join(entry.aliases[:5])})"
@@ -61,6 +63,8 @@ def retrieve(
         )
 
     for note in lore.notes.search(q, limit=limit):
+        if not note.enabled:
+            continue
         body_preview = (note.body or "").replace("\n", " ")[:120]
         summary = f"{note.id}: {note.title} — {body_preview}"
         hits.append(
@@ -84,7 +88,7 @@ def retrieve(
                     emb = embed_fn(q)
                     for note_id, dist in idx.search(emb, limit=limit):
                         note = lore.notes.get(note_id)
-                        if note is None:
+                        if note is None or not note.enabled:
                             continue
                         # cosine distance: smaller better → score in ~[0, 2]
                         score = 1.5 / (1.0 + float(dist))
@@ -142,7 +146,7 @@ def retrieve_prompt_block(
         lines = ["【个人知识库】（无精确命中；部分 KV 键）"]
         for k in keys:
             e = lore.kv.get(k)
-            if e is None:
+            if e is None or not e.enabled:
                 continue
             lines.append(f"- {e.key} = {e.value}")
         text = "\n".join(lines)

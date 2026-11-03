@@ -27,6 +27,7 @@ class KvEntry:
     updated_at: str
     source: str = ""
     aliases: tuple[str, ...] = ()
+    enabled: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -35,6 +36,7 @@ class KvEntry:
             "updated_at": self.updated_at,
             "source": self.source,
             "aliases": list(self.aliases),
+            "enabled": bool(self.enabled),
         }
 
     @classmethod
@@ -42,6 +44,7 @@ class KvEntry:
         aliases = raw.get("aliases") or []
         if not isinstance(aliases, list):
             aliases = []
+        enabled = raw.get("enabled", True)
         return cls(
             key=str(raw.get("key") or ""),
             value=raw.get("value"),
@@ -50,6 +53,7 @@ class KvEntry:
             aliases=tuple(str(a).strip() for a in aliases if str(a).strip())[
                 :_MAX_ALIASES
             ],
+            enabled=bool(enabled) if enabled is not None else True,
         )
 
 
@@ -156,6 +160,7 @@ class KvStore:
         source: str = "",
         aliases: list[str] | tuple[str, ...] | None = None,
         merge_aliases: bool = True,
+        enabled: bool | None = None,
     ) -> KvEntry:
         k = validate_key(key)
         v = validate_value(value)
@@ -163,8 +168,10 @@ class KvStore:
         data = self._load()
         prev = data.get(k)
         prev_aliases = ()
+        prev_enabled = True
         if isinstance(prev, dict):
             prev_aliases = tuple(prev.get("aliases") or ())
+            prev_enabled = bool(prev.get("enabled", True))
         if merge_aliases:
             merged = _merge_aliases(prev_aliases, aliases)
         else:
@@ -175,10 +182,24 @@ class KvStore:
             updated_at=utc_now(),
             source=src,
             aliases=merged,
+            enabled=prev_enabled if enabled is None else bool(enabled),
         )
         data[k] = entry.to_dict()
         self._save(data)
         return entry
+
+    def set_enabled(self, key: str, enabled: bool) -> KvEntry | None:
+        """Soft-enable / disable without changing value. None if missing."""
+        k = validate_key(key)
+        data = self._load()
+        row = data.get(k)
+        if row is None:
+            return None
+        entry = KvEntry.from_dict({**row, "key": k, "enabled": bool(enabled)})
+        # keep updated_at when only toggling; stamp source of truth on disk
+        data[k] = {**entry.to_dict(), "updated_at": utc_now()}
+        self._save(data)
+        return KvEntry.from_dict(data[k])
 
     def delete(self, key: str) -> bool:
         k = validate_key(key)

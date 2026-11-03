@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from fawai_lore.buffer import clear_buffer, list_buffer, promote_buffer_row
+from fawai_lore.buffer import (
+    clear_buffer,
+    drop_buffer_row,
+    list_buffer,
+    list_sidecar_log,
+    promote_buffer_row,
+)
 from fawai_lore.extract import Candidate, propose_event, propose_from_text
 from fawai_lore.kv import KvEntry, KvStore, KvValidationError
 from fawai_lore.llm_extract import merge_candidates, propose_with_llm
@@ -26,8 +32,10 @@ __all__ = [
     "SidecarResult",
     "VectorIndex",
     "clear_buffer",
+    "drop_buffer_row",
     "fake_embed",
     "list_buffer",
+    "list_sidecar_log",
     "merge_candidates",
     "open_lore",
     "open_vector_index",

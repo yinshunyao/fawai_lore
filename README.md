@@ -31,6 +31,8 @@ lore = open_lore("/path/to/lore")
 lore.kv.set("dataset.cub.root", "/data/cub", aliases=["CUB数据根"])
 lore.kv.search("CUB")
 lore.notes.upsert({"id": "disk-h1", "title": "H1", "body": "…", "tags": ["disk"]})
+lore.kv.set_enabled("dataset.cub.root", False)  # soft-disable; retrieve skips it
+lore.notes.delete("disk-h1")  # hard delete
 ```
 
 ## Sidecar (always-on)

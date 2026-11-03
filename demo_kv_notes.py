@@ -50,10 +50,32 @@ def run_demo(root: Path) -> None:
     except NoteValidationError:
         pass
 
+    # soft enable / disable
+    e2 = lore.kv.set_enabled("disk.h1.root", False)
+    assert e2 is not None and e2.enabled is False
+    assert lore.kv.get("disk.h1.root").enabled is False
+    lore.kv.set_enabled("disk.h1.root", True)
+    n2 = lore.notes.set_enabled("disk-h1-layout", False)
+    assert n2 is not None and n2.enabled is False
+    lore.notes.set_enabled("disk-h1-layout", True)
+    assert lore.notes.delete("disk-h1-layout") is True
+    assert lore.notes.get("disk-h1-layout") is None
+
     # reopen persistence
+    lore.notes.upsert(
+        {
+            "id": "disk-h1-layout",
+            "title": "H1 disk layout",
+            "body": "Models under models/; training dumps under scanly/.",
+            "tags": ["disk", "h1"],
+            "related_keys": ["disk.h1.root"],
+            "source": "demo",
+        }
+    )
     lore2 = LoreStore(root)
     assert lore2.kv.get("disk.h1.root").value == "/Volumes/shunyao-h1"
     assert lore2.notes.get("disk-h1-layout") is not None
+    assert lore2.kv.get("disk.h1.root").enabled is True
     print(f"[PASS] fawai_lore kv+notes at {root}")
 
 

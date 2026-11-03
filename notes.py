@@ -29,6 +29,7 @@ class Note:
     source: str
     created_at: str
     updated_at: str
+    enabled: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -40,6 +41,7 @@ class Note:
             "source": self.source,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "enabled": bool(self.enabled),
         }
 
     @classmethod
@@ -50,6 +52,7 @@ class Note:
             tags = []
         if not isinstance(keys, list):
             keys = []
+        enabled = raw.get("enabled", True)
         return cls(
             id=str(raw.get("id") or ""),
             title=str(raw.get("title") or ""),
@@ -59,6 +62,7 @@ class Note:
             source=str(raw.get("source") or ""),
             created_at=str(raw.get("created_at") or ""),
             updated_at=str(raw.get("updated_at") or ""),
+            enabled=bool(enabled) if enabled is not None else True,
         )
 
 
@@ -66,6 +70,7 @@ def validate_note_payload(
     raw: dict[str, Any],
     *,
     existing_created_at: str | None = None,
+    existing_enabled: bool | None = None,
 ) -> Note:
     nid = str(raw.get("id") or "").strip().lower()
     if not _ID_RE.match(nid):
@@ -93,6 +98,12 @@ def validate_note_payload(
     source = str(raw.get("source") or "").strip()[:200]
     now = utc_now()
     created = existing_created_at or str(raw.get("created_at") or "").strip() or now
+    if "enabled" in raw:
+        enabled = bool(raw.get("enabled"))
+    elif existing_enabled is not None:
+        enabled = bool(existing_enabled)
+    else:
+        enabled = True
     return Note(
         id=nid,
         title=title,
@@ -102,6 +113,7 @@ def validate_note_payload(
         source=source,
         created_at=created,
         updated_at=now,
+        enabled=enabled,
     )
 
 
@@ -138,9 +150,29 @@ class NoteStore:
         note = validate_note_payload(
             payload,
             existing_created_at=existing.created_at if existing else None,
+            existing_enabled=existing.enabled if existing else None,
         )
         atomic_write_json(self._path_for(note.id), note.to_dict())
         return note
+
+    def set_enabled(self, note_id: str, enabled: bool) -> Note | None:
+        """Soft-enable / disable without rewriting body. None if missing."""
+        note = self.get(note_id)
+        if note is None:
+            return None
+        updated = Note(
+            id=note.id,
+            title=note.title,
+            body=note.body,
+            tags=note.tags,
+            related_keys=note.related_keys,
+            source=note.source,
+            created_at=note.created_at,
+            updated_at=utc_now(),
+            enabled=bool(enabled),
+        )
+        atomic_write_json(self._path_for(updated.id), updated.to_dict())
+        return updated
 
     def delete(self, note_id: str) -> bool:
         nid = str(note_id or "").strip().lower()
