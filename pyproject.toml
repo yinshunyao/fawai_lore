@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fawai_lore"
+version = "0.3.0"
+description = "Local KV + structured notes store for personal lore (no bundled data)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+vector = ["sqlite-vec>=0.1.6"]
+dev = ["pytest>=8.0.0"]
+
+# Repo root IS the import package (avoids fawai-avatar/fawai_lore shadowing an inner package).
+[tool.setuptools]
+packages = ["fawai_lore"]
+
+[tool.setuptools.package-dir]
+fawai_lore = "."
